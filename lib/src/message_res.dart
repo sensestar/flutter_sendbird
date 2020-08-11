@@ -99,3 +99,13 @@ class FileMessage extends Message {
 
   bool isFromOtherUser() => senderId != FlutterSendbird().currentUserId;
 }
+
+@JsonSerializable(fieldRename: FieldRename.snake, createToJson: false, anyMap: true)
+class MessageChangeLog {
+  MessageChangeLog();
+  factory MessageChangeLog.fromJson(Map<String, dynamic> json) => _$MessageChangeLogFromJson(json);
+  List<Message> updated;
+  List<int> delete;
+  bool hasMore;
+  String queryToken;
+}

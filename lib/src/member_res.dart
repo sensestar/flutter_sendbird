@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'member_res.g.dart';
 
-@JsonSerializable(fieldRename: FieldRename.snake, includeIfNull: false)
+@JsonSerializable(fieldRename: FieldRename.snake, includeIfNull: false, anyMap: true)
 class Member {
   Member();
   factory Member.fromJson(Map<String, dynamic> map) => _$MemberFromJson(map);

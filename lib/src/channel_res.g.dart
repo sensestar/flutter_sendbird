@@ -32,7 +32,7 @@ Map<String, dynamic> _$BaseChannelToJson(BaseChannel instance) {
   return val;
 }
 
-GroupChannel _$GroupChannelFromJson(Map<String, dynamic> json) {
+GroupChannel _$GroupChannelFromJson(Map json) {
   return GroupChannel()
     ..coverUrl = json['cover_url'] as String
     ..name = json['name'] as String
@@ -43,15 +43,20 @@ GroupChannel _$GroupChannelFromJson(Map<String, dynamic> json) {
     ..isPublic = json['is_public'] as bool
     ..unreadMessageCount = json['unread_message_count'] as int
     ..members = (json['members'] as List)
-        ?.map((e) =>
-            e == null ? null : Member.fromJson(e as Map<String, dynamic>))
+        ?.map((e) => e == null
+            ? null
+            : Member.fromJson((e as Map)?.map(
+                (k, e) => MapEntry(k as String, e),
+              )))
         ?.toList()
-    ..readStatus = (json['read_status'] as Map<String, dynamic>)?.map(
-      (k, e) => MapEntry(k, e as int),
+    ..readStatus = (json['read_status'] as Map)?.map(
+      (k, e) => MapEntry(k as String, e as int),
     )
     ..lastMessage = json['last_message'] == null
         ? null
-        : Message.fromJson(json['last_message'] as Map<String, dynamic>);
+        : Message.fromJson((json['last_message'] as Map)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ));
 }
 
 Map<String, dynamic> _$GroupChannelToJson(GroupChannel instance) {

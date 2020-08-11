@@ -84,6 +84,18 @@ public class SwiftFlutterSendbirdPlugin: NSObject, FlutterPlugin {
             let url = params[2] as! String
             let cnt = params[3] as! Int
             SendBirdUtils.sharedInstance.getLastMessages(isOpen: isOpen, queryId: qid, url: url, cnt: cnt, rslt: result)
+        case "getMessageChangeLogsByToken":
+            let params = call.arguments as! NSArray
+            let isOpen = params[0] as! Bool
+            let url = params[1] as! String
+            let token = params[2] as! String
+            SendBirdUtils.sharedInstance.getMessageChangeLogsByToken(isOpen: isOpen, url: url, token: token, rslt: rslt)
+        case "getMessageChangeLogsByTimestamp":
+            let params = call.arguments as! NSArray
+            let isOpen = params[0] as! Bool
+            let url = params[1] as! String
+            let timestamp = params[2] as! Int64
+            SendBirdUtils.sharedInstance.getMessageChangeLogsByTimestamp(isOpen: isOpen, url: url, timestamp: timestamp, rslt: rslt)
             
         case "sendUserMessage":
             let paramList = call.arguments as! NSArray

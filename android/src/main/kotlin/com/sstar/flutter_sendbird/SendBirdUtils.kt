@@ -47,7 +47,7 @@ object SendBirdUtils {
         })
     }
 
-    fun reconnect(){
+     fun reconnect(){
         SendBird.reconnect()
     }
 
@@ -66,21 +66,13 @@ object SendBirdUtils {
 
     fun getChannel( isOpen : Boolean, url: String, result :MethodChannel.Result ){
         val f = { group: BaseChannel?, e: SendBirdException? ->
-            var jso = JsonObject()
+            val jso = HashMap<String,Any>()
             if( group != null ) {
                 extractChannel(group, jso)
-                result.success( jso.toString() )
+                result.success( jso )
             }
         }
-        if( isOpen ) {
-            OpenChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }else {
-            GroupChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }
+        _runChannel( isOpen, url, f )
     }
 
     fun enterOpenChannel(channelUrl: String, result :MethodChannel.Result ) {
@@ -99,9 +91,9 @@ object SendBirdUtils {
                     } else {
                         Log.d(SendBirdUtils::class.java.simpleName, "Enter openChannel '${openChannel.name}' !!")
                         // openChannelManagementHandler?.onOpenChannelConnected()
-                        var jso = JsonObject()
+                        val jso = HashMap<String,Any>()
                         extractChannel( openChannel, jso )
-                        result.success( jso.toString() )
+                        result.success( jso )
                     }
                 }
             }
@@ -133,15 +125,15 @@ object SendBirdUtils {
             calendar.set(Calendar.MINUTE, endMin)
             val toMillis = calendar.timeInMillis
 
-            val jso = JsonObject()
-            jso.addProperty("enabled", isDoNotDisturbOn)
-            jso.addProperty( "start_hour", startHour )
-            jso.addProperty( "start_min", startMin )
-            jso.addProperty( "end_hour", endHour )
-            jso.addProperty( "end_min", endMin )
-            jso.addProperty( "timezone", timezone )
+            val jso = HashMap<String,Any>()
+            jso["enabled"]= isDoNotDisturbOn
+            jso["start_hour"]= startHour
+            jso["start_min"]= startMin
+            jso["end_hour"]= endHour
+            jso["end_min"]= endMin
+            jso["timezone"]= timezone
 
-            result.success( jso.toString() )
+            result.success( jso )
         }
     }
 
@@ -200,17 +192,17 @@ object SendBirdUtils {
         userListQuery?.next( object: UserListQuery.UserListQueryResultHandler {
             override
             fun onResult(p0: MutableList<User>? , p1: SendBirdException?) {
-                var jslist = mutableListOf<String>();
+                val jslist = mutableListOf<Any>();
                 p0?.forEach { user ->
 
-                    var jso = JsonObject()
-                    jso.addProperty("nickname", user.nickname)
-                    jso.addProperty("profile_url", user.profileUrl)
-                    jso.addProperty("is_active", user.isActive)
-                    jso.addProperty("is_online", user.connectionStatus == User.ConnectionStatus.ONLINE )
-                    jso.addProperty("last_seen_at", user.lastSeenAt)
-                    jso.addProperty("user_id", user.userId)
-                    jslist.add(jso.toString())
+                    val jso = HashMap<String,Any>()
+                    jso["nickname"]= user.nickname
+                    jso["profile_url"]= user.profileUrl
+                    jso["is_active"]= user.isActive
+                    jso["is_online"]= user.connectionStatus == User.ConnectionStatus.ONLINE
+                    jso["last_seen_at"]= user.lastSeenAt
+                    jso["user_id"]=user.userId
+                    jslist.add(jso)
                 }
                 result.success(jslist)
             }}
@@ -247,112 +239,112 @@ object SendBirdUtils {
             if (e != null) {    // Error.
                 result.error("sendbird", e.toString(), null )
             } else {
-                var ret = mutableListOf<String>()
+                val ret = mutableListOf<Any>()
                 for( channel in list ){
-                    var jso = JsonObject()
+                    val jso = HashMap<String,Any>()
                     extractChannel(channel, jso )
-                    ret.add(jso.toString())
+                    ret.add(jso)
                 }
                 result.success( ret )
             }
         }
     }
 
-    private fun extractChannel( baseChannel: BaseChannel, jso: JsonObject ){
-        jso.addProperty("cover_url", baseChannel.coverUrl)
-        jso.addProperty("name", baseChannel.name)
-        jso.addProperty("url", baseChannel.url)
-        jso.addProperty("data", baseChannel.data)
-        jso.addProperty("is_open_channel", baseChannel.isOpenChannel)
+    private fun extractChannel( baseChannel: BaseChannel, jso: HashMap<String,Any> ){
+        jso["cover_url"]= baseChannel.coverUrl
+        jso["name"]= baseChannel.name
+        jso["url"]= baseChannel.url
+        jso["data"]= baseChannel.data
+        jso["is_open_channel"]= baseChannel.isOpenChannel
 
         when( baseChannel )
         {
             is GroupChannel ->{
-                var channel = baseChannel as GroupChannel
-                jso.addProperty("is_public", channel.isPublic)
-                jso.addProperty("custom_type", channel.customType)
-                jso.addProperty("unread_message_count", channel.getUnreadMessageCount() )
-                var jsmsg = JsonObject()
+                val channel = baseChannel as GroupChannel
+                jso["is_public"]= channel.isPublic
+                jso["custom_type"]= channel.customType
+                jso["unread_message_count"]= channel.getUnreadMessageCount()
+                val jsmsg = HashMap<String,Any>()
                 if( channel.lastMessage != null ) {
                     extractMessage(channel.lastMessage, jsmsg)
                 }
-                jso.add("last_message", jsmsg )
+                jso["last_message"] = jsmsg
 
-                var userlist = JsonArray()
+                val userlist = mutableListOf<Any>()
                 for( member in channel.members ){
-                    var usr = JsonObject()
-                    usr.addProperty( "nickname", member.nickname )
-                    usr.addProperty( "user_id", member.userId )
-                    usr.addProperty( "profile_url", member.profileUrl )
+                    var usr = HashMap<String,Any>()
+                    usr[ "nickname"]= member.nickname
+                    usr[ "user_id"]= member.userId
+                    usr[ "profile_url"]= member.profileUrl
                     userlist.add( usr )
                 }
-                jso.add( "members", userlist )
+                jso[ "members"]= userlist
 
-                var readlist = JsonObject()
+                var readlist = HashMap<String, Long >()
                 val reads = channel.getReadStatus( true );
                 reads.forEach {iter ->
                     val userid = iter.key
                     val readstate = iter.value
-                    readlist.addProperty( userid, readstate.timestamp );
+                    readlist[ userid ] =  readstate.timestamp
                 }
-                jso.add("read_status", readlist )
+                jso["read_status"]= readlist
                 //for( k)
 
                 //}
             }
             is OpenChannel ->{
                 var channel = baseChannel as OpenChannel
-                jso.addProperty( "custom_type", channel.customType)
+                jso[ "custom_type"] = channel.customType
 
             }
         }
 
     }
 
-    private fun extractMessage( message: BaseMessage, json: JsonObject ) {
-        json.addProperty("created_at", message.createdAt)
-        json.addProperty("data", message.data)
-        json.addProperty("message_id", message.messageId)
+    private fun extractMessage( message: BaseMessage, json: HashMap<String,Any> ) {
+        json["created_at"] = message.createdAt
+        json["data"] = message.data
+        json["message_id"]= message.messageId
 
         when (message) {
             is UserMessage -> {
                 var umsg = message as UserMessage
-                json.addProperty( "type", "USER" )
-                json.addProperty("message", umsg.message )
-                json.addProperty("sender_id", umsg.sender.userId )
-                json.addProperty("sender_profile_url", umsg.sender.profileUrl )
-                json.addProperty("sender_nickname", umsg.sender.nickname )
-                json.addProperty("custom_type", umsg.customType )
+                json[ "type"] = "USER"
+                json[ "message" ] = umsg.message
+                json["sender_id"] =  umsg.sender.userId
+                json["sender_profile_url"] = umsg.sender.profileUrl
+                json["sender_nickname"]= umsg.sender.nickname
+                json["custom_type"] = umsg.customType
                 if (message.mentionType == BaseMessageParams.MentionType.USERS) {
-                    val array = JsonArray()
+                    val array = mutableListOf<String>()
                     message.mentionedUsers.forEach{
                         array.add( it.userId )
                     }
-                    json.add( "mentioned_user_ids", array )
+                    json[ "mentioned_user_ids"] = array
                 }
             }
             is AdminMessage -> {
                 var amsg = message as AdminMessage;
-                json.addProperty( "type", "ADMIN")
-                json.addProperty( "message", amsg.message )
+                json[ "type"] = "ADMIN"
+                json [ "message"] =  amsg.message
             }
             is FileMessage -> {
                 var fmsg = message as FileMessage;
-                json.addProperty( "type", "FILE" )
-                json.addProperty( "name", fmsg.name )
-                json.addProperty( "request_id", fmsg.requestId )
-                json.addProperty( "sender_id", fmsg.sender.userId )
-                json.addProperty( "sender_profile_url", fmsg.sender.profileUrl )
-                json.addProperty( "sender_nickname", fmsg.sender.nickname )
-                json.addProperty( "custom_type", fmsg.customType )
-                json.addProperty( "file_type", fmsg.type )
-                json.addProperty( "url", fmsg.url )
+                json[ "type"] = "FILE"
+                json[ "name" ] = fmsg.name
+                json[ "request_id" ] = fmsg.requestId
+                json[ "sender_id" ] = fmsg.sender.userId
+                json[ "sender_profile_url" ] = fmsg.sender.profileUrl
+                json[ "sender_nickname" ] = fmsg.sender.nickname
+                json[ "custom_type" ] = fmsg.customType
+                json[ "file_type" ] = fmsg.type
+                json[ "url" ] = fmsg.url
             }
         }
     }
 
     fun listenChannelMessage( handlerId: String, result: MethodChannel.Result ){
-        var channel = EventChannel( _flutterBinaryMessenger, handlerId)
+        val channel = EventChannel( _flutterBinaryMessenger, handlerId)
         _eventChannl[ handlerId ] = channel
         Log.d("sendbird","sethandler")
         result.success(handlerId)
@@ -368,78 +360,79 @@ object SendBirdUtils {
                     SendBird.addChannelHandler( handlerId, object: SendBird.ChannelHandler(){
                         override fun onMessageReceived( channel: BaseChannel?, message: BaseMessage?) {
                             Log.d("sendbird","listen message")
-                            var js = JsonObject()
+                            val js = HashMap<String,Any>()
                             if( channel != null && message != null  ) {
-                                js.addProperty("event", "messageReceived")
-                                js.addProperty("channel_url", channel.url)
-                                js.addProperty("is_open_channel", channel.isOpenChannel)
+                                js["event"]= "messageReceived"
+                                js["channel_url"]= channel.url
+                                js["is_open_channel"]= channel.isOpenChannel
                                 extractMessage( message, js )
-                                events.success( js.toString() )
+                                events.success( js )
                             }
                         }
                         override fun onUserEntered(channel: OpenChannel?, user: User?) {
-                            var js = JsonObject()
+                            var js = HashMap<String,Any>()
                             if( channel != null && user != null  ) {
-                                js.addProperty("event", "userEntered")
-                                js.addProperty("user_id", user.userId)
-                                js.addProperty("nickname", user.nickname)
-                                js.addProperty("profile_url", user.profileUrl)
-                                js.addProperty("channel_url", channel.url )
-                                events.success( js.toString() )
+                                js["event"]= "userEntered"
+                                js["user_id"]= user.userId
+                                js["nickname"]= user.nickname
+                                js["profile_url"]= user.profileUrl
+                                js["channel_url"]= channel.url
+                                events.success( js )
                             }
                         }
                         override fun onUserJoined(channel: GroupChannel?, user: User?) {
-                            var js = JsonObject()
+                            var js = HashMap<String,Any>()
                             if( channel != null && user != null  ) {
-                                js.addProperty("event", "userJoined")
-                                js.addProperty("user_id", user.userId)
-                                js.addProperty("nickname", user.nickname)
-                                js.addProperty("profile_url", user.profileUrl)
-                                js.addProperty("channel_url", channel.url )
-                                events.success( js.toString() )
+                                js["event"]= "userJoined"
+                                js["user_id"]= user.userId
+                                js["nickname"]= user.nickname
+                                js["profile_url"]= user.profileUrl
+                                js["channel_url"]= channel.url
+                                events.success( js )
                             }
                         }
 
                         override fun onReadReceiptUpdated(channel: GroupChannel?) {
-                            var js = JsonObject()
+                            var js = HashMap<String,Any>()
                             if( channel != null  ) {
-                                js.addProperty("event", "readReceiptUpdate")
-                                js.addProperty("channel_url", channel.url )
-                                var jsChannel = JsonObject()
+                                js["event"]="readReceiptUpdate"
+                                js["channel_url"]=channel.url
+                                var jsChannel = HashMap<String,Any>()
                                 extractChannel( channel, jsChannel )
-                                js.add( "channel", jsChannel )
-                                events.success( js.toString() )
+                                js["channel"]=jsChannel
+                                events.success( js )
                             }
                         }
 
                         override fun onTypingStatusUpdated(channel: GroupChannel?) {
-                            var js = JsonObject()
+                            var js = HashMap<String,Any>()
                             if( channel != null  ) {
-                                js.addProperty("event", "typingStatusUpdated")
-                                js.addProperty( "is_typing", channel.isTyping )
-                                js.addProperty(  "channel_url", channel.url );
-                                events.success( js.toString() )
+                                js["event"]="typingStatusUpdated"
+                                js["is_typing"]=channel.isTyping
+                                js["channel_url"]=channel.url
+                                events.success( js )
                             }
                         }
 
                         override fun onMessageUpdated(channel: BaseChannel?, message: BaseMessage?) {
-                            var js = JsonObject()
+                            var js = HashMap<String,Any>()
                             if( channel != null && message != null  ) {
-                                js.addProperty("event", "messageUpdated")
-                                js.addProperty("channel_url", channel.url)
-                                js.addProperty("is_open_channel", channel.isOpenChannel)
+                                js["event"]="messageUpdated"
+                                js["channel_url"]=channel.url
+                                js["is_open_channel"]=channel.isOpenChannel
                                 extractMessage( message, js )
-                                events.success( js.toString() )
+                                events.success( js )
                             }
                         }
 
                         override fun onMessageDeleted(channel: BaseChannel?, msgId: Long) {
-                            var js = JsonObject()
+                            var js = HashMap<String,Any>()
+
                             if( channel != null ) {
-                                js.addProperty("event", "messageDeleted")
-                                js.addProperty( "channel_url", channel.url )
-                                js.addProperty( "message_id", msgId )
-                                events.success( js.toString() )
+                                js["event"]="messageDeleted"
+                                js["channel_url"]=channel.url
+                                js["message_id"]=msgId
+                                events.success( js )
                             }
                         }
                     })
@@ -454,14 +447,24 @@ object SendBirdUtils {
         )// setHandler
     }
 
-    private  fun _handleGetChannelMessage(messages: List<BaseMessage>, result: MethodChannel.Result  ){
-        var retList = mutableListOf<String>()
+    private  fun _handleGetChannelMessage(messages: List<BaseMessage>, result: MethodChannel.Result  ) {
+        var retList = mutableListOf<Any>()
         for( msg in messages ){
-            var js = JsonObject()
+            var js = HashMap<String,Any>()
             extractMessage( msg, js )
-            retList.add( js.toString() );
+            retList.add( js );
         }
         result.success( retList )
+    }
+
+    private fun _messagesToJsonList( messages: List<BaseMessage> ): MutableList<Any>{
+        var retList = mutableListOf<Any>()
+        for( msg in messages ){
+            var js = HashMap<String,Any>()
+            extractMessage( msg, js )
+            retList.add( js );
+        }
+        return retList;
     }
 
     fun getMessagesByTimestamp( isOpenChannel: Boolean, groupUrl: String, timeStamp: Long, revertSort: Boolean, cnt : Int, customType: String, result: MethodChannel.Result ){
@@ -481,15 +484,7 @@ object SendBirdUtils {
         }
 
 
-        if( isOpenChannel ){
-            OpenChannel.getChannel( groupUrl ) { group, e ->
-                f( group, e )
-            }
-        }else {
-            GroupChannel.getChannel(groupUrl) { group, e ->
-                f( group, e )
-            }
-        }
+        _runChannel( isOpenChannel, groupUrl, f )
 
     }
 
@@ -520,22 +515,78 @@ object SendBirdUtils {
         }
 
 
-        if( isOpenChannel ){
-            OpenChannel.getChannel( groupUrl ) { group, e ->
-                f( group, e )
+        _runChannel( isOpenChannel, groupUrl, f )
+
+    }
+
+    private fun _runChannel( isOpenChannel: Boolean, groupUrl: String, fn: (BaseChannel, SendBirdException? )->Unit ){
+         if( isOpenChannel ){
+             OpenChannel.getChannel( groupUrl ) { group, e ->
+                 fn( group, e )
+             }
+         }else {
+             GroupChannel.getChannel(groupUrl) { group, e ->
+                 fn( group, e )
+             }
+         }
+    }
+
+    fun _handleChangeLogs( group: BaseChannel,
+                           updatedList: List<BaseMessage> , deletedList: List<Long>,
+                           hasMore: Boolean, token: String,
+                           e: SendBirdException?, result: MethodChannel.Result ){
+        if (e == null) {
+            var updatedMessages = _messagesToJsonList( updatedList )
+            var retObj =  HashMap<String,Any>()
+            retObj["updated"]=updatedMessages
+            var deletedIds = mutableListOf<Long>()
+            for( id in deletedList ){
+                deletedIds.add( id )
             }
-        }else {
-            GroupChannel.getChannel(groupUrl) { group, e ->
-                f( group, e )
+
+            retObj["delete"]=deletedIds
+            retObj["has_more"]=hasMore
+            retObj["query_token"]=token
+            result.success( retObj )
+
+        } else {
+            result.error("Sendbird", e.toString(), null)
+        }
+
+    }
+
+    fun getMessageChangeLogsByToken(isOpenChannel: Boolean, groupUrl: String, token: String, result: MethodChannel.Result){
+        val f = { group: BaseChannel, e: SendBirdException? ->
+            if( e == null ) {
+                group.getMessageChangeLogsByToken( token, true ){ updatedList, deletedList, hasMore, token, e->
+                    _handleChangeLogs( group,updatedList, deletedList, hasMore, token, e, result )
+                }
+            } else {
+                result.error("Sendbird", e.toString(), null)
             }
         }
 
+        _runChannel( isOpenChannel, groupUrl, f )
+    }
+
+    fun getMessageChangeLogsByTimeStamp( isOpenChannel: Boolean, groupUrl: String, timeStamp: Long, result: MethodChannel.Result ){
+        val f = { group: BaseChannel, e: SendBirdException? ->
+            if( e == null ){
+                group.getMessageChangeLogsByTimestamp( timeStamp, true) { updatedList, deletedList, hasMore, token, e->
+                    _handleChangeLogs( group, updatedList, deletedList, hasMore, token, e, result )
+                }
+            } else {
+                result.error("Sendbird", e.toString(), null)
+            }
+        }
+
+        _runChannel( isOpenChannel, groupUrl, f )
     }
 
     var queryHandler = mutableMapOf<String, PreviousMessageListQuery>()
 
     fun getLastMessages( isOpen: Boolean, qid: String,  url : String , cnt : Int, result: MethodChannel.Result  ){
-        val f = { group :BaseChannel?, e: SendBirdException?  ->
+        val f = { group :BaseChannel, e: SendBirdException?  ->
             var query : PreviousMessageListQuery?
             if( queryHandler.containsKey(qid) ){
                 query = queryHandler[qid]
@@ -552,17 +603,11 @@ object SendBirdUtils {
                     _handleGetChannelMessage(messages, result)
                 }
             }
+            Unit
         }
 
-        if( isOpen ) {
-            OpenChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }else {
-            GroupChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }
+        _runChannel( isOpen, url, f )
+
 
     }
 
@@ -583,23 +628,15 @@ object SendBirdUtils {
             group?.sendUserMessage( msg ) { sentMsg, e ->
                 if( e == null ){
                     if( sentMsg != null ) {
-                        var js = JsonObject()
+                        var js = HashMap<String,Any>()
                         extractMessage( sentMsg, js)
-                        result.success( js.toString() )
+                        result.success( js )
                     }
                 }
             }
+            Unit
         }
-
-        if( isOpen ) {
-            OpenChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }else {
-            GroupChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }
+        _runChannel( isOpen, url, f )
 
     }
 
@@ -607,7 +644,7 @@ object SendBirdUtils {
                          msgId: Long, message: String, userData: String,
                          result: MethodChannel.Result ){
         val f = { group: BaseChannel?, e: SendBirdException? ->
-            var msg = UserMessageParams()
+            val msg = UserMessageParams()
                     .setMessage(message)
                     .setCustomType(customType)
                     .setData(userData)
@@ -615,23 +652,19 @@ object SendBirdUtils {
             group?.updateUserMessage( msgId, msg ) { sentMsg, e ->
                 if( e == null ){
                     if( sentMsg != null ) {
-                        var js = JsonObject()
+                        val js = HashMap<String,Any>()
                         extractMessage( sentMsg, js)
-                        result.success( js.toString() )
+                        result.success( js )
                     }
                 }
             }
+
+            Unit
         }
 
-        if( isOpen ) {
-            OpenChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }else {
-            GroupChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }
+        _runChannel( isOpen, url, f )
+
+
 
     }    
 
@@ -684,12 +717,12 @@ object SendBirdUtils {
                         if (p1 != null) {
                             result.error("sendfile", p1.toString(), null)
                         } else if (p0 != null) {
-                            var json = JsonObject()
+                            val json = HashMap<String,Any>()
                             extractMessage(p0, json)
-                            var ret = JsonObject()
-                            ret.addProperty( "event", "onsent" )
-                            ret.add( "msg", json )
-                            event.success( ret.toString() )
+                            val ret = HashMap<String,Any>()
+                            ret[ "event"] = "onsent"
+                            ret[ "msg"] =  json
+                            event.success( ret )
                         }
                         // channel.cancel()
                     }
@@ -697,31 +730,23 @@ object SendBirdUtils {
                     // bytesSent, totalBytesSent, totalBytesToSend
                     override fun onProgress(p0: Int, p1: Int, p2: Int) {
                         //_uploadPhotoProgress.value = arrayOf(p0, p1, p2)
-                        var json = JsonObject();
-                        json.addProperty("event", "progress" )
-                        json.addProperty("total_sent", p1 )
-                        json.addProperty( "total_bytes", p2 )
-                        event.success( json.toString() )
+                        var json = HashMap<String,Any>();
+                        json["event"]= "progress"
+                        json["total_sent"]= p1
+                        json[ "total_bytes"]= p2
+                        event.success( json )
                     }
                 })
             }
 
-            var jsonChannel = JsonObject()
-            jsonChannel.addProperty("channel", filePath )
-            result.success( jsonChannel.toString() )
+            var jsonChannel = HashMap<String,Any>()
+            jsonChannel["channel"] = filePath
+            result.success( jsonChannel )
         }
 
 
+        _runChannel( isOpen, url, f )
 
-        if( isOpen ) {
-            OpenChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }else {
-            GroupChannel.getChannel(url) { group, e ->
-                f( group, e )
-            }
-        }
     }
 
     fun markAsRead( url: String, result: MethodChannel.Result  ){
@@ -735,9 +760,9 @@ object SendBirdUtils {
     fun createChannelWithUserIds( uids : List<String>, isDistinct: Boolean, result: MethodChannel.Result ){
         GroupChannel.createChannelWithUserIds(  uids, isDistinct ) { group, e ->
             if( group != null ){
-                var json = JsonObject()
+                val json = HashMap<String,Any>()
                 extractChannel( group, json )
-                result.success( json.toString() )
+                result.success( json )
             }
             if( e != null ){
                 result.error("sendbird",e.toString(), null)

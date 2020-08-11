@@ -153,3 +153,17 @@ Map<String, dynamic> _$FileMessageToJson(FileMessage instance) {
   writeNotNull('custom_type', instance.customType);
   return val;
 }
+
+MessageChangeLog _$MessageChangeLogFromJson(Map json) {
+  return MessageChangeLog()
+    ..updated = (json['updated'] as List)
+        ?.map((e) => e == null
+            ? null
+            : Message.fromJson((e as Map)?.map(
+                (k, e) => MapEntry(k as String, e),
+              )))
+        ?.toList()
+    ..delete = (json['delete'] as List)?.map((e) => e as int)?.toList()
+    ..hasMore = json['has_more'] as bool
+    ..queryToken = json['query_token'] as String;
+}

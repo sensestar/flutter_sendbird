@@ -14,7 +14,7 @@ class BaseChannel {
   bool isOpenChannel; // 世界頻道
 }
 
-@JsonSerializable(fieldRename: FieldRename.snake, includeIfNull: false)
+@JsonSerializable(fieldRename: FieldRename.snake, includeIfNull: false, anyMap: true)
 class GroupChannel extends BaseChannel {
   String customType;
   bool isPublic; // 需要密碼加入
@@ -42,7 +42,7 @@ class GroupChannel extends BaseChannel {
   Map<String, dynamic> toJson() => _$GroupChannelToJson(this);
 }
 
-@JsonSerializable(fieldRename: FieldRename.snake, includeIfNull: false)
+@JsonSerializable(fieldRename: FieldRename.snake, includeIfNull: false, anyMap: true)
 class OpenChannel extends BaseChannel {
   String customType;
 

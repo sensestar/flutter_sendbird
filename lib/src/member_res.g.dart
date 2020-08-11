@@ -6,7 +6,7 @@ part of 'member_res.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Member _$MemberFromJson(Map<String, dynamic> json) {
+Member _$MemberFromJson(Map json) {
   return Member()
     ..userId = json['user_id'] as String
     ..nickname = json['nickname'] as String

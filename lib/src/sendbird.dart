@@ -1,10 +1,13 @@
 import 'dart:async' as sync;
-import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'channel_res.dart';
 import 'message_res.dart';
 import 'user_res.dart';
 import 'utils/logger.dart';
+
+Map<String, dynamic> _castJsonMap(Map map) {
+  return Map<String, dynamic>.from(map);
+}
 
 class FlutterSendbird {
   static Future<String> get platformVersion async {
@@ -50,14 +53,14 @@ class FlutterSendbird {
   }
 
   Future<BaseChannel> getChannel(bool isOpen, String url) async {
-    final data = await platform.invokeMethod('getChannel', [isOpen, url]);
+    final json = await platform.invokeMethod('getChannel', [isOpen, url]);
 
-    if (data == null) return null;
-    final json = jsonDecode(data);
+    if (json == null) return null;
+
     if (isOpen) {
-      return OpenChannel.fromJson(json);
+      return OpenChannel.fromJson(_castJsonMap(json));
     } else {
-      return GroupChannel.fromJson(json);
+      return GroupChannel.fromJson(_castJsonMap(json));
     }
   }
 
@@ -69,9 +72,8 @@ class FlutterSendbird {
   Future<List<User>> viewUser(List<String> userIds) async {
     final lists = await platform.invokeMethod('viewUser', userIds);
     final ret = <User>[];
-    for (final s in lists) {
-      final json = jsonDecode(s);
-      final u = User.fromJson(json);
+    for (final json in lists) {
+      final u = User.fromJson(_castJsonMap(json));
       ret.add(u);
     }
     return ret;
@@ -81,8 +83,7 @@ class FlutterSendbird {
     final allchannels = await platform.invokeMethod('fetchChannelList');
     final ret = <GroupChannel>[];
     for (var channel in allchannels) {
-      final js = jsonDecode(channel);
-      final ch = GroupChannel.fromJson(js);
+      final ch = GroupChannel.fromJson(_castJsonMap(channel));
       ret.add(ch);
     }
     return ret;
@@ -102,13 +103,12 @@ class FlutterSendbird {
     final eventName = 'handerldid_all';
     final _ = await platform.invokeMethod('listenChannelMessage', eventName);
     _eventChannel = EventChannel(eventName);
-    _eventChannel.receiveBroadcastStream().listen((data) {
-      final json = jsonDecode(data);
-      eventChannel.add(json);
+    _eventChannel.receiveBroadcastStream().listen((json) {
+      eventChannel.add(_castJsonMap(json));
       switch (json['event']) {
         case 'messageUpdated':
         case 'messageReceived':
-          final msg = Message.fromJson(json);
+          final msg = Message.fromJson(_castJsonMap(json));
           eventChannelMessage.add(msg);
           //pointChat.value = pointChat.value +1;
           break;
@@ -117,10 +117,9 @@ class FlutterSendbird {
   }
 
   Future<OpenChannel> enterOpenChannel(String channelUrl) async {
-    final ret = await platform.invokeMethod('enterOpenChannel', channelUrl);
-    if (ret != null) {
-      final json = jsonDecode(ret);
-      final channel = OpenChannel.fromJson(json);
+    final json = await platform.invokeMethod('enterOpenChannel', channelUrl);
+    if (json != null) {
+      final channel = OpenChannel.fromJson(_castJsonMap(json));
       return channel;
     }
     return null;
@@ -134,9 +133,8 @@ class FlutterSendbird {
     final msgs = await platform.invokeMethod('getLastMessages', [isOpen, qid, groupId, count]);
     if (msgs != null) {
       final ret = <Message>[];
-      for (var s in msgs) {
-        final json = jsonDecode(s);
-        ret.add(Message.fromJson(json));
+      for (var json in msgs) {
+        ret.add(Message.fromJson(_castJsonMap(json)));
       }
       return ret;
     }
@@ -166,32 +164,71 @@ class FlutterSendbird {
     ]);
     if (msgs != null) {
       final ret = <Message>[];
-      for (var s in msgs) {
-        final json = jsonDecode(s);
-        ret.add(Message.fromJson(json));
+      for (var json in msgs) {
+        ret.add(Message.fromJson(_castJsonMap(json)));
       }
       return ret;
     }
     return null;
   }
 
+  Future<MessageChangeLog> getMessageChangeLogsByTimestamp(
+    bool isOpen,
+    String url,
+    int timestamp,
+  ) async {
+    if (connected == false) {
+      logger.e('sendbird getLastMessages before connected');
+      return null;
+    }
+    final msgs = await platform.invokeMethod('getMessageChangeLogsByTimestamp', [
+      isOpen,
+      url,
+      timestamp,
+    ]);
+    if (msgs != null) {
+      final json = Map<String, dynamic>.from(msgs);
+      return MessageChangeLog.fromJson(_castJsonMap(json));
+    }
+    return null;
+  }
+
+  Future<MessageChangeLog> getMessageChangeLogsByToken(
+    bool isOpen,
+    String url,
+    String queryToken,
+  ) async {
+    if (connected == false) {
+      logger.e('sendbird getLastMessages before connected');
+      return null;
+    }
+    final msgs = await platform.invokeMethod('getMessageChangeLogsByToken', [
+      isOpen,
+      url,
+      queryToken,
+    ]);
+    if (msgs != null) {
+      final json = Map<String, dynamic>.from(msgs);
+      return MessageChangeLog.fromJson(_castJsonMap(json));
+    }
+    return null;
+  }
+
   Future<UserMessage> sendUserMessage(
       bool isOpen, String url, String customType, String message, String userData, List<String> mentionUsers) async {
-    final msgs = await platform
+    final json = await platform
         .invokeMethod('sendUserMessage', [isOpen, url, customType, message, userData, mentionUsers.join(',')]);
-    if (msgs != null) {
-      final json = jsonDecode(msgs);
-      return Message.fromJson(json) as UserMessage;
+    if (json != null) {
+      return Message.fromJson(_castJsonMap(json)) as UserMessage;
     }
     return null;
   }
 
   Future<UserMessage> updateUserMessage(
       bool isOpen, String url, String customType, int msgId, String message, String userData) async {
-    final msgs = await platform.invokeMethod('updateUserMessage', [isOpen, url, customType, msgId, message, userData]);
-    if (msgs != null) {
-      final json = jsonDecode(msgs);
-      return Message.fromJson(json) as UserMessage;
+    final json = await platform.invokeMethod('updateUserMessage', [isOpen, url, customType, msgId, message, userData]);
+    if (json != null) {
+      return Message.fromJson(_castJsonMap(json)) as UserMessage;
     }
     return null;
   }
@@ -222,10 +259,9 @@ class FlutterSendbird {
   }
 
   Future<GroupChannel> createChannelWithUserIds(List<String> userIds, bool isDistinct) async {
-    final ret = await platform.invokeMethod('createChannelWithUserIds', [userIds, isDistinct]);
-    if (ret != null) {
-      final json = jsonDecode(ret);
-      final channel = GroupChannel.fromJson(json);
+    final json = await platform.invokeMethod('createChannelWithUserIds', [userIds, isDistinct]);
+    if (json != null) {
+      final channel = GroupChannel.fromJson(_castJsonMap(json));
       return channel;
     }
     return null;

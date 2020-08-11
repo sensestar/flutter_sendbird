@@ -1,2 +1,8 @@
 
 android/.idea/
+
+flutter_sendbird.iml
+
+.packages
+
+.dart_tool/

@@ -175,6 +175,20 @@ public class FlutterSendbirdPlugin: FlutterPlugin, MethodCallHandler {
           SendBirdUtils.sendFileMessage(isOpen, url, customType, message, userData, filePath, fileType,  mentionUsers, result )
 
         }
+        "getMessageChangeLogsByTimestamp" ->{
+          val paramList = call.arguments as List<String>
+          val isOpen = paramList[0] as Boolean
+          val url = paramList[1]
+          val timeStamp = paramList[2] as Long
+          SendBirdUtils.getMessageChangeLogsByTimeStamp( isOpen, url, timeStamp, result )
+        }
+        "getMessageChangeLogsByToken" -> {
+          val paramList = call.arguments as List<String>
+          val isOpen = paramList[0] as Boolean
+          val url = paramList[1]
+          val token = paramList[2] as String
+          SendBirdUtils.getMessageChangeLogsByToken( isOpen, url, token, result )
+        }        
         "getChannel" -> {
           val paramList = call.arguments as List<String>
           val isOpen = paramList[0] as Boolean

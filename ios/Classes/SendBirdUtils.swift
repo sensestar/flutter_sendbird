@@ -60,7 +60,7 @@ class SendBirdUtils: NSObject {
         }
     }
     
-    func reconnect(){
+   func reconnect(){
         SBDMain.reconnect()
     }
     
@@ -80,19 +80,12 @@ class SendBirdUtils: NSObject {
             if( group != nil ){
                 var jso = NSMutableDictionary()
                 SendBirdUtils.extractChannel(channel: group!, js: &jso)
-                rslt( SendBirdUtils.jsoToString(jso: jso) )
+                rslt( jso )
             }
         }
         
-        if( isOpen ){
-            SBDOpenChannel.getWithUrl( url)  { channel, err in
-                _do( group: channel, e: err )
-            }
-        }else{
-            SBDGroupChannel.getWithUrl( url ) { channel, err in
-                _do( group: channel, e: err )
-            }
-        }
+        _runChannel( isOpen: isOpen, url: url , fn: _do )
+
     }
     
     func enterOpenChannel( url: String, rslt: @escaping FlutterResult ){
@@ -108,7 +101,7 @@ class SendBirdUtils: NSObject {
                     }else{
                         var jso = NSMutableDictionary()
                         SendBirdUtils.extractChannel(channel: channel!, js: &jso)
-                        rslt( SendBirdUtils.jsoToString(jso:jso) )
+                        rslt( jso )
                     }
                 }
             }
@@ -130,12 +123,12 @@ class SendBirdUtils: NSObject {
             jso["end_hour"] = endHour
             jso["end_min"] = endMin
             jso["timezone"] = timezone
-            rslt( SendBirdUtils.jsoToString(jso: jso))
+            rslt( jso)
         }
     }
 
     
-    static func jsoToString( jso :NSDictionary ) -> String{
+    static func jsoToString_( jso :NSDictionary ) -> String{
         do{
             let data = try JSONSerialization.data(withJSONObject: jso, options: .prettyPrinted)
             return String( data:data, encoding: String.Encoding.utf8 )!
@@ -144,11 +137,11 @@ class SendBirdUtils: NSObject {
             return "{}"
         }
     }
-    static func jsArrayToString( jso :NSArray ) -> NSArray{
+    static func jsArrayToString_( jso :NSArray ) -> NSArray{
         do{
             let ret = NSMutableArray()
             for element in jso{
-                ret.add( jsoToString(jso: element as! NSDictionary ) )
+                ret.add(  element as! NSDictionary )
             }
             return ret
         }catch{
@@ -268,7 +261,7 @@ class SendBirdUtils: NSObject {
                 jso["user_id"] = user.userId
                 rsltList.add(jso)
             }
-            rslt( SendBirdUtils.jsArrayToString(jso: rsltList ) )
+            rslt( rsltList )
         }
     }
     
@@ -288,7 +281,7 @@ class SendBirdUtils: NSObject {
                 SendBirdUtils.extractChannel(channel: grp, js: &jso)
                 jsarr.add(jso)
             }
-            rslt( SendBirdUtils.jsArrayToString(jso: jsarr ))
+            rslt( jsarr )
         }
     }
     
@@ -382,7 +375,7 @@ class SendBirdUtils: NSObject {
     
     
     func listenChannelMessage( handlerId: String, rslt: @escaping FlutterResult ){
-        var event = FlutterEventChannel(name: handlerId, binaryMessenger: _binaryMessenger! )
+        var event = FlutterEventChannel(name: handlerId, binaryMessenger: _controller as! FlutterBinaryMessenger )
         _eventChannels[handlerId] = event
         rslt(handlerId)
         
@@ -410,7 +403,7 @@ class SendBirdUtils: NSObject {
             SendBirdUtils.extractMessage(msg: msg, js: &jsmsg)
             retList.add( jsmsg )
         }
-        rslt( SendBirdUtils.jsArrayToString(jso: retList ) )
+        rslt( retList )
     }
     
     func getLastMessages( isOpen: Bool, queryId: String, url: String, cnt: Int, rslt: @escaping FlutterResult){
@@ -428,15 +421,7 @@ class SendBirdUtils: NSObject {
             
         }
         
-        if( isOpen ){
-            SBDOpenChannel.getWithUrl( url)  { channel, err in
-                _do( channel: channel, err: err )
-            }
-        }else{
-            SBDGroupChannel.getWithUrl( url ) { channel, err in
-                _do( channel: channel, err: err )
-            }
-        }
+        _runChannel( isOpen: isOpen, url: url , fn: _do )
     }
     
     func getMessagesByTimestamp( isOpen: Bool, url: String, timeStamp: Int64,
@@ -449,15 +434,7 @@ class SendBirdUtils: NSObject {
             }
         }
         
-        if( isOpen ){
-            SBDOpenChannel.getWithUrl( url)  { channel, err in
-                _do( channel: channel, err: err )
-            }
-        }else{
-            SBDGroupChannel.getWithUrl( url ) { channel, err in
-                _do( channel: channel, err: err )
-            }
-        }
+        _runChannel( isOpen: isOpen, url: url , fn: _do )
     }
     
     func getMessagesByMsgId( isOpen: Bool, url: String, msgId: Int64,
@@ -486,15 +463,46 @@ class SendBirdUtils: NSObject {
             
         }
         
-        if( isOpen ){
-            SBDOpenChannel.getWithUrl( url)  { channel, err in
-                _do( channel: channel, err: err )
+        _runChannel( isOpen: isOpen, url: url , fn: _do )
+    }
+    func getMessageChangeLogsByTimestamp( isOpen: Bool, url: String, timestamp: Int64, rslt: @escaping FlutterResult ){
+        func _do( channel: SBDBaseChannel?, err: SBDError?){
+
+            channel?.getMessageChangeLogs(byTimestamp: timestamp, includeMetaArray: true ){
+                messageList, deletedIds, hasMore, token, err in
+                SendBirdUtils._handleChangeLogs(messageList: messageList, deletedIds: deletedIds, hasMore: hasMore, token: token, rslt: rslt)
             }
-        }else{
-            SBDGroupChannel.getWithUrl( url ) { channel, err in
-                _do( channel: channel, err: err )
-            }
+            
         }
+        _runChannel(isOpen: isOpen, url: url, fn: _do )
+    }
+    
+    func getMessageChangeLogsByToken( isOpen: Bool, url: String, token: String, rslt: @escaping FlutterResult ){
+        func _do( channel: SBDBaseChannel?, err: SBDError?){
+
+            channel?.getMessageChangeLogs(withToken: token, includeMetaArray: true){
+                messageList, deletedIds, hasMore, token, err in
+                SendBirdUtils._handleChangeLogs(messageList: messageList, deletedIds: deletedIds, hasMore: hasMore, token: token, rslt: rslt)
+
+            }
+                        
+        }
+        _runChannel(isOpen: isOpen, url: url, fn: _do )
+    }
+    
+    static func _handleChangeLogs( messageList: [SBDBaseMessage]?, deletedIds: [NSNumber]?, hasMore: Bool, token: String?, rslt: FlutterResult ){
+        let jsarr = NSMutableArray()
+        for msg in messageList! {
+            var jso = NSMutableDictionary()
+            SendBirdUtils.extractMessage(msg: msg, js: &jso)
+            jsarr.add(jso)
+        }
+         let ret = NSMutableDictionary()
+         ret["updated"] = jsarr
+         ret["delete"] = deletedIds
+         ret["has_more"] = hasMore
+         ret["query_token"] = token
+         rslt( ret )
     }
     
     func sendUserMessage( isOpen: Bool, url: String, customType: String,
@@ -514,18 +522,21 @@ class SendBirdUtils: NSObject {
                 if( sentMsg != nil && err == nil ){
                     var jso = NSMutableDictionary()
                     SendBirdUtils.extractMessage(msg: sentMsg!, js: &jso)
-                    rslt( SendBirdUtils.jsoToString(jso: jso ))
+                    rslt( jso )
                 }
             }
         }
-        
+        _runChannel( isOpen: isOpen, url: url , fn: _do )
+    }
+    
+    func _runChannel( isOpen: Bool, url: String, fn: @escaping (_ channel: SBDBaseChannel?, _ err: SBDError?)->() ){
         if( isOpen ){
             SBDOpenChannel.getWithUrl( url)  { channel, err in
-                _do( channel: channel, err: err )
+                fn( channel, err )
             }
         }else{
             SBDGroupChannel.getWithUrl( url ) { channel, err in
-                _do( channel: channel, err: err )
+                fn( channel, err )
             }
         }
     }
@@ -543,20 +554,13 @@ class SendBirdUtils: NSObject {
                    if( sentMsg != nil && err == nil ){
                        var jso = NSMutableDictionary()
                        SendBirdUtils.extractMessage(msg: sentMsg!, js: &jso)
-                       rslt( SendBirdUtils.jsoToString(jso: jso ))
+                       rslt( jso )
                    }
                }
            }
            
-           if( isOpen ){
-               SBDOpenChannel.getWithUrl( url)  { channel, err in
-                   _do( channel: channel, err: err )
-               }
-           }else{
-               SBDGroupChannel.getWithUrl( url ) { channel, err in
-                   _do( channel: channel, err: err )
-               }
-           }
+            _runChannel( isOpen: isOpen, url: url , fn: _do )
+
        }
     
 
@@ -565,11 +569,11 @@ class SendBirdUtils: NSObject {
                           metionUsers: [String], rslt: @escaping FlutterResult
                           ){
         let uuid = UUID().uuidString
-        let event = FlutterEventChannel(name: filePath, binaryMessenger: _binaryMessenger! )
+        let event = FlutterEventChannel(name: filePath, binaryMessenger: _controller as! FlutterBinaryMessenger )
         //_eventChannels[uuid] = event
         let jso = NSMutableDictionary()
         jso["channel"] = uuid
-        let data = SendBirdUtils.jsoToString(jso: jso )
+        let data = jso
         rslt( data )
         
         func _do( channel: SBDBaseChannel?, err: SBDError? ){
@@ -583,17 +587,17 @@ class SendBirdUtils: NSObject {
                     jso["event"] = "progress"
                     jso["total_sent"] = sent
                     jso["total_bytes"] = total
-                    evt( SendBirdUtils.jsoToString(jso: jso) )
+                    evt( jso )
                 }, completionHandler: {msg, err in
                     if( msg == nil ){
-                        evt("sendbird unknown error")
+                        evt( { "error: sendbird unknown error"} )
                     }else{
                         let jso = NSMutableDictionary()
                         var jsmsg = NSMutableDictionary()
                         SendBirdUtils.extractMessage(msg: msg!, js: &jsmsg)
                         jso["event"] = "onsent"
                         jso["msg"] = jsmsg
-                        evt( SendBirdUtils.jsoToString(jso: jso) )
+                        evt( jso)
                     }
                         
                 })
@@ -603,15 +607,8 @@ class SendBirdUtils: NSObject {
             
         }
         
-        if( isOpen ){
-            SBDOpenChannel.getWithUrl( url)  { channel, err in
-                _do( channel: channel, err: err )
-            }
-        }else{
-            SBDGroupChannel.getWithUrl( url ) { channel, err in
-                _do( channel: channel, err: err )
-            }
-        }
+        _runChannel( isOpen: isOpen, url: url , fn: _do )
+
   
     }
     
@@ -634,10 +631,9 @@ class SendBirdUtils: NSObject {
             
             var jso = NSMutableDictionary()
             SendBirdUtils.extractChannel(channel: channel!, js: &jso)
-            rslt( SendBirdUtils.jsoToString(jso: jso))
+            rslt( jso )
         }
     }
-    
     
     
     
