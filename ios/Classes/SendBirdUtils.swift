@@ -375,7 +375,7 @@ class SendBirdUtils: NSObject {
     
     
     func listenChannelMessage( handlerId: String, rslt: @escaping FlutterResult ){
-        var event = FlutterEventChannel(name: handlerId, binaryMessenger: _controller as! FlutterBinaryMessenger )
+        var event = FlutterEventChannel(name: handlerId, binaryMessenger: _binaryMessenger! )
         _eventChannels[handlerId] = event
         rslt(handlerId)
         
@@ -569,7 +569,7 @@ class SendBirdUtils: NSObject {
                           metionUsers: [String], rslt: @escaping FlutterResult
                           ){
         let uuid = UUID().uuidString
-        let event = FlutterEventChannel(name: filePath, binaryMessenger: _controller as! FlutterBinaryMessenger )
+        let event = FlutterEventChannel(name: filePath, binaryMessenger: _binaryMessenger! )
         //_eventChannels[uuid] = event
         let jso = NSMutableDictionary()
         jso["channel"] = uuid
@@ -697,7 +697,7 @@ class EventHandler :NSObject,  FlutterStreamHandler, SBDChannelDelegate{
           jso["channel_url"] = sender.channelUrl
           jso["is_open_channel"] = sender.isOpen()
           SendBirdUtils.extractMessage(msg: message, js: &jso)
-          event( SendBirdUtils.jsoToString(jso: jso) )
+          event( jso )
       }
       func channel(_ sender: SBDOpenChannel, userDidEnter user: SBDUser) {
           guard let event = event else{
@@ -709,7 +709,7 @@ class EventHandler :NSObject,  FlutterStreamHandler, SBDChannelDelegate{
           jso["nickname"] = user.nickname
           jso["profile_url"] = user.profileUrl
           jso["channel_url"] = sender.channelUrl
-          event( SendBirdUtils.jsoToString(jso: jso) )
+          event( jso )
       }
     
     func channel(_ sender: SBDGroupChannel, userDidJoin user: SBDUser) {
@@ -722,7 +722,7 @@ class EventHandler :NSObject,  FlutterStreamHandler, SBDChannelDelegate{
         jso["nickname"] = user.nickname
         jso["profile_url"] = user.profileUrl
         jso["channel_url"] = sender.channelUrl
-        event( SendBirdUtils.jsoToString( jso:jso) )
+        event( jso )
     }
     
     func channelDidUpdateReadReceipt(_ sender: SBDGroupChannel) {
@@ -735,7 +735,7 @@ class EventHandler :NSObject,  FlutterStreamHandler, SBDChannelDelegate{
         var jsChannel = NSMutableDictionary()
         SendBirdUtils.extractChannel(channel: sender, js: &jsChannel)
         jso["channel"] = jsChannel
-        event( SendBirdUtils.jsoToString(jso: jso) )
+        event( jso )
         
     }
     
@@ -747,7 +747,7 @@ class EventHandler :NSObject,  FlutterStreamHandler, SBDChannelDelegate{
         jso["event"] = "typingStatusUpdated"
         jso["is_typing"] = sender.isTyping()
         jso["channel_url"] = sender.channelUrl
-        event( SendBirdUtils.jsoToString(jso: jso))
+        event( jso )
     }
     
     func channel(_ sender: SBDBaseChannel, didUpdate message: SBDBaseMessage) {
@@ -759,7 +759,7 @@ class EventHandler :NSObject,  FlutterStreamHandler, SBDChannelDelegate{
         jso["channel_url"] = sender.channelUrl
         jso["is_open_channel"] = sender.isOpen()
         SendBirdUtils.extractMessage(msg: message, js: &jso)
-        event( SendBirdUtils.jsoToString(jso: jso) )
+        event( jso )
     }
     
     func channel(_ sender: SBDBaseChannel, messageWasDeleted messageId: Int64) {
@@ -770,7 +770,7 @@ class EventHandler :NSObject,  FlutterStreamHandler, SBDChannelDelegate{
         jso["event"] = "messageDeleted"
         jso["channel_url"] = sender.channelUrl
         jso["message_id"] = messageId
-        event( SendBirdUtils.jsoToString(jso: jso) )
+        event( jso )
     }
     
   }
