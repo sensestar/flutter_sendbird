@@ -89,13 +89,13 @@ public class SwiftFlutterSendbirdPlugin: NSObject, FlutterPlugin {
             let isOpen = params[0] as! Bool
             let url = params[1] as! String
             let token = params[2] as! String
-            SendBirdUtils.sharedInstance.getMessageChangeLogsByToken(isOpen: isOpen, url: url, token: token, rslt: rslt)
+            SendBirdUtils.sharedInstance.getMessageChangeLogsByToken(isOpen: isOpen, url: url, token: token, rslt: result)
         case "getMessageChangeLogsByTimestamp":
             let params = call.arguments as! NSArray
             let isOpen = params[0] as! Bool
             let url = params[1] as! String
             let timestamp = params[2] as! Int64
-            SendBirdUtils.sharedInstance.getMessageChangeLogsByTimestamp(isOpen: isOpen, url: url, timestamp: timestamp, rslt: rslt)
+            SendBirdUtils.sharedInstance.getMessageChangeLogsByTimestamp(isOpen: isOpen, url: url, timestamp: timestamp, rslt: result)
             
         case "sendUserMessage":
             let paramList = call.arguments as! NSArray
