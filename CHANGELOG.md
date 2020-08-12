@@ -1,3 +1,9 @@
-## 0.0.1
+## 0.0.2+2
+Fix compile error in ios
 
-* TODO: Describe initial release.
+## 0.0.2
+Chnage platform result as InternalHashMap
+Add getMessageChangeLogsByTimestamp
+
+## 0.0.1
+Basic interface used in project
